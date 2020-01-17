@@ -34,7 +34,6 @@ func main() {
 			e.ChildText("td.cmc-table__cell--sort-by__volume-24-h"),
 			e.ChildText("td.cmc-table__cell--sort-by__market-cap"),
 		})
-
 	})
 
 	c.Visit("https://coinmarketcap.com/all/views/all/")
