@@ -1,6 +1,16 @@
 language: go
 go:
   - "1.13.x"
+  
+go_import_path: golang.org/x/lint
+
+install:
+  - go get -t -v ./...
+  
 script:
-  - golangci-lint run       # run a bunch of code checkers/linters in parallel
-  - go test -v -race ./...  # Run all the tests with the race detector enabled
+  - go test -v -race ./...
+  
+matrix:
+  allow_failures:
+    - go: master
+  fast_finish: true
