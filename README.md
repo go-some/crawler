@@ -1,6 +1,12 @@
 # crawler
 crowl 서비스의 크롤러를 구현합니다.
 
+## Preparation
+- 크롤 모듈인 colly 패키지를 설치합니다 [colly](http://go-colly.org/)
+```bash
+go get -u github.com/gocolly/colly/...
+```
+
 ## 설치
 - go 설치 후
 - [work-space-path]/src/ 밑에 이 프로젝트를 clone 시킵니다.
