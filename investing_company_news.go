@@ -1,14 +1,15 @@
 
-package main
+package crawler
 
 import (
-
 	"fmt"
 	"github.com/gocolly/colly"
 )
 
-func main() {
+type InvestingCompanyNews struct {
+}
 
+func (icn InvestingCompanyNews) Run() {
 	// Instantiate default collector
 	c := colly.NewCollector()
 

@@ -1,5 +1,5 @@
 
-package main
+package crawler
 
 import (
 	"encoding/csv"
@@ -8,8 +8,10 @@ import (
 	"github.com/gocolly/colly"
 )
 
-func main() {
+type CryptoCointMarket struct {
+}
 
+func (ccm CryptoCointMarket) Run() {
 	fName := "cryptocoinmarketcap.csv"
 	file, err := os.Create(fName)
 	if err != nil {
