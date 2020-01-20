@@ -41,3 +41,6 @@ func (rc *USToday) Run(wtr Writer) {
 }
 ```
 - 구현된 크롤러는 [github.com/go-some/executor](https://github.com/go-some/executor)에서 호출됩니다.
+
+## To Do
+- [ ] Pass the Travis
