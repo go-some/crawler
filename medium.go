@@ -15,20 +15,20 @@ import (
 type Medium struct {
 }
 
-
 func (rc *Medium) Run(wtr DocsWriter) {
 
 	c := colly.NewCollector()
 	c.DisableCookies()
 
-	docs := make([]News, 0, 100)
+	saveLength := 100
+	docs := make([]News, 0, saveLength)
 	origin := "https://medium.com/"
 
 	// Find and visit all links
 	c.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		url := e.Attr("href")
-		spl := strings.Split(url,"/")
-		isMedium := len(spl)>2 && strings.Contains(spl[0], "http") && strings.Contains(spl[2], "medium")
+		spl := strings.Split(url, "/")
+		isMedium := len(spl) > 2 && strings.Contains(spl[0], "http") && strings.Contains(spl[2], "medium")
 		if isMedium && (!strings.Contains(url, "signin") && !strings.Contains(url, "membership")) {
 			e.Request.Visit(url)
 		}
@@ -83,7 +83,7 @@ func (rc *Medium) Run(wtr DocsWriter) {
 				if nextTitle {
 					//report the page title and break out of the loop
 					title = tk.Data
-					fmt.Println("title=", title)
+					//fmt.Println("title=", title)
 					nextTitle = false
 				}
 
@@ -128,14 +128,17 @@ func (rc *Medium) Run(wtr DocsWriter) {
 		finalBody = strings.Join(spl, "\n")
 		//fmt.Println(finalBody)
 		time := ""
-    	doc := News{ title, finalBody, time, url, origin }
-    	docs = append(docs, doc)
-    	wtr.WriteDocs(docs)
+		doc := News{title, finalBody, time, url, origin}
+		docs = append(docs, doc)
+		if len(docs) >= saveLength {
+			wtr.WriteDocs(docs)
+			docs = docs[:0]
+		}
 	})
 
 	c.OnRequest(func(r *colly.Request) {
 		c.DisableCookies()
-		fmt.Println("Visiting", r.URL)
+		//fmt.Println("Visiting", r.URL)
 	})
 
 	c.Visit("https://forge.medium.com/how-to-read-100-books-a-year/home")
