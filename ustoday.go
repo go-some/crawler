@@ -8,7 +8,7 @@ import (
 type USToday struct {
 }
 
-func (rc *USToday) Run(wtr Writer) {
+func (rc *USToday) Run(wtr DocsWriter) {
   c := colly.NewCollector()
 
   docs := make([]News, 0, 100)
@@ -26,7 +26,7 @@ func (rc *USToday) Run(wtr Writer) {
   })
 
   c.OnScraped(func (r *colly.Response) {
-    wtr("ustoday.csv", docs)
+    wtr.WriteDocs(docs)
   })
 
   c.Visit("https://www.usatoday.com/money/")

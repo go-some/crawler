@@ -8,7 +8,7 @@ import (
 type MarketWatch struct {
 }
 
-func (rc *MarketWatch) Run(wtr Writer) {
+func (rc *MarketWatch) Run(wtr DocsWriter) {
   c := colly.NewCollector()
 
   docs := make([]News, 0, 100)
@@ -26,7 +26,7 @@ func (rc *MarketWatch) Run(wtr Writer) {
   })
 
   c.OnScraped(func (r *colly.Response) {
-    wtr("marketwatch.csv", docs)
+    wtr.WriteDocs(docs)
   })
 
   c.Visit("https://www.marketwatch.com/investing/stocks?mod=exchange-traded-funds")

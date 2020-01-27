@@ -9,7 +9,7 @@ import (
 type Reuters struct{
 }
 
-func (rc *Reuters) Run(wtr Writer){
+func (rc *Reuters) Run(wtr DocsWriter){
   // Instantiate default NewCollector
   c := colly.NewCollector()
   docs := make([]News, 0, 100)
@@ -37,7 +37,7 @@ func (rc *Reuters) Run(wtr Writer){
 	})
 
   c.OnScraped(func (r *colly.Response){
-    wtr("reuters.csv",docs)
+    wtr.WriteDocs(docs)
   })
 
   c.Visit("https://www.reuters.com/finance")
