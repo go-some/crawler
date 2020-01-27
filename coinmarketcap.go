@@ -1,11 +1,10 @@
-
 package crawler
 
 import (
 	"encoding/csv"
+	"github.com/gocolly/colly"
 	"log"
 	"os"
-	"github.com/gocolly/colly"
 )
 
 type CryptoCointMarket struct {

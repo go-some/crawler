@@ -1,4 +1,3 @@
-
 package crawler
 
 import (
@@ -14,16 +13,16 @@ func (icn InvestingCompanyNews) Run() {
 	c := colly.NewCollector()
 
 	c.OnHTML(".mediumTitle1", func(e *colly.HTMLElement) {
-    var titles []string
+		var titles []string
 
-    // There are non-related news which have 'ga-label' label names "Popular News - Article"
-    if e.Attr("ga-label") != "Popular News - Article"{
-      titles = e.ChildTexts("a.title")
-    }
-    // Print new titles
-    for _, title  := range titles {
-  		fmt.Println(title)
-  	}
+		// There are non-related news which have 'ga-label' label names "Popular News - Article"
+		if e.Attr("ga-label") != "Popular News - Article" {
+			titles = e.ChildTexts("a.title")
+		}
+		// Print new titles
+		for _, title := range titles {
+			fmt.Println(title)
+		}
 
 	})
 

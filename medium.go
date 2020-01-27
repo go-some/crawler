@@ -3,7 +3,7 @@ package crawler
 import (
 	//"bufio"
 	"bytes"
-	"fmt"
+	//"fmt"
 	"github.com/gocolly/colly"
 	"golang.org/x/net/html"
 	"io"
