@@ -50,7 +50,7 @@ func (rc *USToday) Run(wtr DocsWriter) {
   })
 
   c.OnScraped(func (r *colly.Response) {
-    wtr(docs)
+    wtr.WriteDocs(docs)
   })
 
   c.Visit("https://www.usatoday.com/money/")
