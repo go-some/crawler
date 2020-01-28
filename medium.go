@@ -10,6 +10,7 @@ import (
 	//"io/ioutil"
 	//"os"
 	"strings"
+	"time"
 )
 
 type Medium struct {
@@ -127,7 +128,7 @@ func (rc *Medium) Run(wtr DocsWriter) {
 		}
 		finalBody = strings.Join(spl, "\n")
 		//fmt.Println(finalBody)
-		time := ""
+		time := time.Now().String()
 		doc := News{title, finalBody, time, url, origin}
 		docs = append(docs, doc)
 		if len(docs) >= saveLength {
