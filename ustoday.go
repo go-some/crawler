@@ -1,7 +1,9 @@
 package crawler
 
 import (
+	"fmt"
 	"github.com/gocolly/colly"
+	"regexp"
 	"strings"
 )
 
@@ -9,25 +11,47 @@ type USToday struct {
 }
 
 func (rc *USToday) Run(wtr DocsWriter) {
-	c := colly.NewCollector()
+	rootCollector := colly.NewCollector(
+		colly.MaxDepth(3),
+		colly.URLFilters(
+			regexp.MustCompile("https://www\\.usatoday\\.com/money/"),
+			regexp.MustCompile("https://www\\.usatoday\\.com/tech/"),
+			regexp.MustCompile("https://www\\.usatoday\\.com/story/money/.+"),
+			regexp.MustCompile("https://www\\.usatoday\\.com/story/tech/.+"),
+		),
+		colly.DisallowedURLFilters(
+			regexp.MustCompile("https://www\\.usatoday\\.com/news/"),
+			regexp.MustCompile("https://www\\.usatoday\\.com/sports/"),
+			regexp.MustCompile("https://www\\.usatoday\\.com/entertainment/"),
+			regexp.MustCompile("https://www\\.usatoday\\.com/news/"),
+			regexp.MustCompile("https://www\\.usatoday\\.com/life/"),
+			regexp.MustCompile("https://www\\.usatoday\\.com/travel/"),
+			regexp.MustCompile("https://www\\.usatoday\\.com/opinion/"),
+		),
+	)
+	rootCollector.AllowURLRevisit = false
 
-	docs := make([]News, 0, 100)
+	articleCollector := colly.NewCollector()
 
-	c.OnHTML("a.gnt_m_flm_a", func(e *colly.HTMLElement) {
-		// site-specific patterns
-		title := strings.Trim(e.Text, " ")
-		url := e.Attr("href")
-		body := strings.Trim(e.Attr("data-c-br"), " ")
-		time := e.ChildAttr("div", "data-c-dt")
-		origin := "https://www.usatoday.com/"
-		// [TODO] add validation
-		doc := News{title, body, time, url, origin}
-		docs = append(docs, doc)
+	rootCollector.OnHTML("a[href]", func(e *colly.HTMLElement) {
+		link := e.Request.AbsoluteURL(e.Attr("href"))
+		if strings.Index(link, "usatoday.com/story/money") != -1 {
+			articleCollector.Visit(link)
+		} else {
+			e.Request.Visit(link)
+		}
 	})
 
-	c.OnScraped(func(r *colly.Response) {
-		wtr.WriteDocs(docs)
+	articleCollector.OnHTML("main.gnt_cw", func(e *colly.HTMLElement) {
+		doc := News{
+			Title:  e.ChildText("h1.gnt_ar_hl"),
+			Body:   e.ChildText("div.gnt_ar_b"),
+			Time:   e.ChildAttr(".gnt_ar_dt", "aria-label"),
+			Url:    e.Request.URL.String(),
+			Origin: "Usatoday",
+		}
+		wtr.WriteDocs([]News{doc})
 	})
 
-	c.Visit("https://www.usatoday.com/money/")
+	rootCollector.Visit("https://www.usatoday.com/money/")
 }

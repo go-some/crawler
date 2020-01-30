@@ -35,9 +35,7 @@ type mongoDBWriter struct{}
 func (*mongoDBWriter) WriteDocs(docs []News) (n int, err error) {
 	id, pw := os.Getenv("DBID"), os.Getenv("DBPW")
 	addrTemplate := os.Getenv("DBADDR")
-	fmt.Println(id, pw, addrTemplate)
 	mongoDBAddr := fmt.Sprintf(addrTemplate, id, pw)
-	fmt.Println("db addr", mongoDBAddr)
 	clientOptions := options.Client().ApplyURI(mongoDBAddr)
 
 	client, err := mongo.Connect(context.TODO(), clientOptions)
