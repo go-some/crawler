@@ -1,7 +1,9 @@
 package crawler
 
 import (
+	"fmt"
 	"github.com/gocolly/colly"
+	"regexp"
 	"strings"
 )
 
@@ -10,22 +12,41 @@ type Reuters struct {
 
 func (rc *Reuters) Run(wtr DocsWriter) {
 	// Instantiate default NewCollector
-	c := colly.NewCollector()
-	docs := make([]News, 0, 100)
+	c := colly.NewCollector(
+		colly.MaxDepth(3),
+		// Visit only finance and businessnews section
+		colly.URLFilters(
+			regexp.MustCompile("https://www\\.reuters\\.com/finance"),
+			regexp.MustCompile("https://www\\.reuters\\.com/news/archive/businessnews.+"),
+		),
+		colly.DisallowedURLFilters(
+			regexp.MustCompile("https://www\\.reuters\\.com/finance/.+"),
+		),
+	)
+	c.AllowURLRevisit = false
 
 	// Create another collector to scrape each news article
-	articleCollector := c.Clone()
+	articleCollector := colly.NewCollector()
 
-	c.OnHTML(".story", func(e *colly.HTMLElement) {
-		//find article url and visit
-		article_url := e.Request.AbsoluteURL(e.ChildAttr("a", "href"))
-		if strings.Index(article_url, "reuters.com/article") != -1 {
-			articleCollector.Visit(article_url)
+	c.OnHTML("a[href]", func(e *colly.HTMLElement) {
+		/* crawl all href links recursively	*/
+		link := e.Request.AbsoluteURL(e.Attr("href"))
+		//if the link is article page, crawl using articleCollector
+		//else, visit the link until MaxDepth
+		if strings.Index(link, "reuters.com/article") != -1 {
+			articleCollector.Visit(link)
+		} else {
+			e.Request.Visit(link) //e.Request.Visit을 이용해야 MaxDepth 처리가 된다.
 		}
 	})
 
 	articleCollector.OnHTML("div.StandardArticle_inner-container", func(e *colly.HTMLElement) {
-		//read article and save
+		/* Read article page and save to mongoDB
+
+		- 최종적으로 우리가 크롤하고자 하는 기사 페이지 (leaf node)
+		- 크롤과 동시에 바로 저장하도록 함
+		- mongoDB에서의 중복체크는 WriteDocs 함수에서 진행
+		*/
 		doc := News{
 			Title:  e.ChildText(".ArticleHeader_headline"),
 			Body:   e.ChildText("div.StandardArticleBody_body"),
@@ -33,11 +54,7 @@ func (rc *Reuters) Run(wtr DocsWriter) {
 			Url:    e.Request.URL.String(),
 			Origin: "Reuters",
 		}
-		docs = append(docs, doc)
-	})
-
-	c.OnScraped(func(r *colly.Response) {
-		wtr.WriteDocs(docs)
+		wtr.WriteDocs([]News{doc}) //TODO : WriteDocs 구조 변경이 필요함
 	})
 
 	c.Visit("https://www.reuters.com/finance")
