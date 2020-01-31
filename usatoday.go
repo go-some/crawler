@@ -1,7 +1,7 @@
 package crawler
 
 import (
-	"fmt"
+	_ "fmt"
 	"github.com/gocolly/colly"
 	"regexp"
 	"strings"
