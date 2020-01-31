@@ -30,21 +30,25 @@ func NewPrinterWriter() *printerWriter {
 /* ) */
 
 /* define mongodbWriter ( */
-type mongoDBWriter struct{}
+type mongoDBWriter struct {
+	client *mongo.Client
+}
 
-func (*mongoDBWriter) WriteDocs(docs []News) (n int, err error) {
-	id, pw := os.Getenv("DBID"), os.Getenv("DBPW")
+func (wtr *mongoDBWriter) Init() {
+	// [TODO] err -> panic?
+	id := os.Getenv("DBID")
+	pw := os.Getenv("DBPW")
 	addrTemplate := os.Getenv("DBADDR")
 	mongoDBAddr := fmt.Sprintf(addrTemplate, id, pw)
 	clientOptions := options.Client().ApplyURI(mongoDBAddr)
 
 	client, err := mongo.Connect(context.TODO(), clientOptions)
+	wtr.client = client
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Check the connection
 	err = client.Ping(context.TODO(), nil)
 
 	if err != nil {
@@ -52,8 +56,21 @@ func (*mongoDBWriter) WriteDocs(docs []News) (n int, err error) {
 	}
 
 	fmt.Println("Connected to MongoDB!")
+}
 
-	collection := client.Database("test").Collection("news")
+func (wtr *mongoDBWriter) Destroy() {
+	// [TODO] err -> panic?
+	err := wtr.client.Disconnect(context.TODO())
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("Connection to MongoDB closed.")
+}
+
+func (wtr *mongoDBWriter) WriteDocs(docs []News) (n int, err error) {
+	collection := wtr.client.Database("test").Collection("news")
 
 	for _, doc := range docs {
 		insertResult, err := collection.InsertOne(context.TODO(), doc)
@@ -62,13 +79,6 @@ func (*mongoDBWriter) WriteDocs(docs []News) (n int, err error) {
 		}
 		fmt.Println("Inserted a single document: ", insertResult.InsertedID)
 	}
-
-	err = client.Disconnect(context.TODO())
-
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("Connection to MongoDB closed.")
 
 	return len(docs), nil
 }
