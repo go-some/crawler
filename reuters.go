@@ -1,7 +1,7 @@
 package crawler
 
 import (
-	_ "fmt"
+	"fmt"
 	"github.com/gocolly/colly"
 	"regexp"
 	"strings"
@@ -54,7 +54,12 @@ func (rc *Reuters) Run(wtr DocsWriter) {
 			Url:    e.Request.URL.String(),
 			Origin: "Reuters",
 		}
-		wtr.WriteDocs([]News{doc}) //TODO : WriteDocs 구조 변경이 필요함
+		cnt, err := wtr.WriteDocs([]News{doc})
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println(cnt, "docs saved")
+		}
 	})
 
 	c.Visit("https://www.reuters.com/finance")

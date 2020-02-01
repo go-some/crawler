@@ -1,16 +1,16 @@
 package crawler
 
 import (
-	_ "fmt"
+	"fmt"
 	"github.com/gocolly/colly"
 	"regexp"
 	"strings"
 )
 
-type USToday struct {
+type USAToday struct {
 }
 
-func (rc *USToday) Run(wtr DocsWriter) {
+func (rc *USAToday) Run(wtr DocsWriter) {
 	rootCollector := colly.NewCollector(
 		colly.MaxDepth(3),
 		colly.URLFilters(
@@ -50,7 +50,12 @@ func (rc *USToday) Run(wtr DocsWriter) {
 			Url:    e.Request.URL.String(),
 			Origin: "Usatoday",
 		}
-		wtr.WriteDocs([]News{doc})
+		cnt, err := wtr.WriteDocs([]News{doc})
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println(cnt, "docs saved")
+		}
 	})
 
 	rootCollector.Visit("https://www.usatoday.com/money/")

@@ -3,10 +3,9 @@ package crawler
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 
-	// "go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -34,8 +33,7 @@ type mongoDBWriter struct {
 	client *mongo.Client
 }
 
-func (wtr *mongoDBWriter) Init() {
-	// [TODO] err -> panic?
+func (wtr *mongoDBWriter) Init() error {
 	id := os.Getenv("DBID")
 	pw := os.Getenv("DBPW")
 	addrTemplate := os.Getenv("DBADDR")
@@ -46,38 +44,48 @@ func (wtr *mongoDBWriter) Init() {
 	wtr.client = client
 
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	err = client.Ping(context.TODO(), nil)
 
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	fmt.Println("Connected to MongoDB!")
+
+	return nil
 }
 
-func (wtr *mongoDBWriter) Destroy() {
-	// [TODO] err -> panic?
+func (wtr *mongoDBWriter) Destroy() error {
 	err := wtr.client.Disconnect(context.TODO())
 
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	fmt.Println("Connection to MongoDB closed.")
+
+	return nil
 }
 
 func (wtr *mongoDBWriter) WriteDocs(docs []News) (n int, err error) {
 	collection := wtr.client.Database("test").Collection("news")
 
 	for _, doc := range docs {
-		insertResult, err := collection.InsertOne(context.TODO(), doc)
-		if err != nil {
-			log.Fatal(err)
+		var res News
+		filter := bson.D{{"url", doc.Url}}
+
+		err = collection.FindOne(context.TODO(), filter).Decode(&res)
+		if err == nil {
+			return 0, fmt.Errorf("Already exist (%s)", doc.Url)
 		}
-		fmt.Println("Inserted a single document: ", insertResult.InsertedID)
+
+		_, err := collection.InsertOne(context.TODO(), doc)
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	return len(docs), nil
