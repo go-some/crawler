@@ -1,7 +1,7 @@
 # crawler
 crowl 서비스의 크롤러를 구현합니다.
 
-## Preparation
+## Requirements
 - 크롤 모듈인 colly 패키지를 설치합니다 [colly](http://go-colly.org/)
 ```bash
 go get -u github.com/gocolly/colly/...
@@ -27,33 +27,71 @@ go get -u github.com/go-some/crawler
 ## Structure
 - 각 크롤러 코드는 해당 사이트를 의미하는 struct를 정의하고,
 ```go
-type USToday struct {
+type Reuters struct {
 }
 ```
-- 특정 사이트를 크롤하는 Run 메서드를 구현 후, 리시버를 통해 struct와 매핑시킵니다.
-- Run 함수에서는 대상 문서 리스트를 크롤하고 DocsWriter를 통해 결과를 기록합니다.
+- 해당 사이트를 탐색하면서 기사(article)들을 크롤하는 Run 메서드를 구현합니다.
+- 최종적으로 크롤해야 하는 기사들의 url 형식을 정의하고 `articleCollector`의 리시버를 통해 저장합니다.
+- 기사 내용은 `News` struct 형식에 맞게 mongoDB에 저장되며 `WriteDocs`(writer.go)함수에서 그 기능을 수행합니다.
 ```go
-func (rc *USToday) Run(wtr DocsWriter) {
-  c := colly.NewCollector()
+func (rc *Reuters) Run(wtr DocsWriter) {
+	// Instantiate default NewCollector
+	c := colly.NewCollector(
+		colly.MaxDepth(3),
+		// Visit only finance and businessnews section
+		colly.URLFilters(
+			regexp.MustCompile("https://www\\.reuters\\.com/finance"),
+			regexp.MustCompile("https://www\\.reuters\\.com/news/archive/businessnews.+"),
+		),
+		colly.DisallowedURLFilters(
+			regexp.MustCompile("https://www\\.reuters\\.com/finance/.+"),
+		),
+	)
+	c.AllowURLRevisit = false
 
-  docs := make([]News, 0, 100)
+	// Create another collector to scrape each news article
+	articleCollector := colly.NewCollector()
 
-  c.OnHTML("a.gnt_m_flm_a", func(e *colly.HTMLElement) {
-    // site-specific patterns
-    title := strings.Trim(e.Text, " ")
-    url := e.Attr("href")
-    body := strings.Trim(e.Attr("data-c-br"), " ")
-    time := e.ChildAttr("div", "data-c-dt")
-    origin := "https://www.usatoday.com/"
-    doc := News{ title, body, time, url, origin }
-    docs = append(docs, doc)
-  })
+	c.OnHTML("a[href]", func(e *colly.HTMLElement) {
+		/* crawl all href links recursively	*/
+		link := e.Request.AbsoluteURL(e.Attr("href"))
+		//if the link is article page, crawl using articleCollector
+		//else, visit the link until MaxDepth
+		if strings.Index(link, "reuters.com/article") != -1 {
+			articleCollector.Visit(link)
+		} else {
+			e.Request.Visit(link) //e.Request.Visit을 이용해야 MaxDepth 처리가 된다.
+		}
+	})
 
-  c.OnScraped(func (r *colly.Response) {
-    wtr.WriteDocs(docs)
-  })
+	articleCollector.OnHTML("div.StandardArticle_inner-container", func(e *colly.HTMLElement) {
+		/* Read article page and save to mongoDB
+    
+		  - 최종적으로 우리가 크롤하고자 하는 기사 페이지 (leaf node)
+		*/
+		doc := News{
+			Title:  e.ChildText(".ArticleHeader_headline"),
+			Body:   e.ChildText("div.StandardArticleBody_body"),
+			Time:   e.ChildText(".ArticleHeader_date"),
+			Url:    e.Request.URL.String(),
+			Origin: "Reuters",
+		}
+		cnt, err := wtr.WriteDocs([]News{doc})
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println(cnt, "docs saved")
+		}
+	})
 
-  c.Visit("https://www.usatoday.com/money/")
+	c.Visit("https://www.reuters.com/finance")
 }
 ```
 - 구현된 크롤러는 [github.com/go-some/executor](https://github.com/go-some/executor)에서 호출됩니다.
+
+## News Company List
+- Reuters
+- USAToday
+- SeekingAlpha
+- CNBC
+- 24/7WallST
