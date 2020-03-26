@@ -13,7 +13,7 @@ type Reuters struct {
 func (rc *Reuters) Run(wtr DocsWriter) {
 	// Instantiate default NewCollector
 	c := colly.NewCollector(
-		colly.MaxDepth(3),
+		colly.MaxDepth(2),
 		// Visit only finance and businessnews section
 		colly.URLFilters(
 			regexp.MustCompile("https://www\\.reuters\\.com/finance"),
@@ -47,10 +47,11 @@ func (rc *Reuters) Run(wtr DocsWriter) {
 		- 크롤과 동시에 바로 저장하도록 함
 		- mongoDB에서의 중복체크는 WriteDocs 함수에서 진행
 		*/
+		date := dateParser(e.ChildText(".ArticleHeader_date"))
 		doc := News{
 			Title:  e.ChildText(".ArticleHeader_headline"),
 			Body:   e.ChildText("div.StandardArticleBody_body"),
-			Time:   e.ChildText(".ArticleHeader_date"),
+			Time:   date,
 			Url:    e.Request.URL.String(),
 			Origin: "Reuters",
 		}
