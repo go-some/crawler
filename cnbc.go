@@ -45,10 +45,11 @@ func (rc *CNBC) Run(wtr DocsWriter) {
 		- 크롤과 동시에 바로 저장하도록 함
 		- mongoDB에서의 중복체크는 WriteDocs 함수에서 진행
 		*/
+		date := dateParser(e.ChildText("time[data-testid=published-timestamp]"))
 		doc := News{
 			Title:  e.ChildText("h1"),
 			Body:   e.ChildText("div[data-module=ArticleBody]"),
-			Time:   e.ChildText("time[data-testid=published-timestamp]"),
+			Time:   date,
 			Url:    e.Request.URL.String(),
 			Origin: "cnbc",
 		}

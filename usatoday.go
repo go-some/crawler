@@ -12,7 +12,7 @@ type USAToday struct {
 
 func (rc *USAToday) Run(wtr DocsWriter) {
 	rootCollector := colly.NewCollector(
-		colly.MaxDepth(3),
+		colly.MaxDepth(2),
 		colly.URLFilters(
 			regexp.MustCompile("https://www\\.usatoday\\.com/money/"),
 			regexp.MustCompile("https://www\\.usatoday\\.com/tech/"),
@@ -43,10 +43,11 @@ func (rc *USAToday) Run(wtr DocsWriter) {
 	})
 
 	articleCollector.OnHTML("main.gnt_cw", func(e *colly.HTMLElement) {
+		date := dateParser(e.ChildAttr(".gnt_ar_dt", "aria-label"))
 		doc := News{
 			Title:  e.ChildText("h1.gnt_ar_hl"),
 			Body:   e.ChildText("div.gnt_ar_b"),
-			Time:   e.ChildAttr(".gnt_ar_dt", "aria-label"),
+			Time:   date,
 			Url:    e.Request.URL.String(),
 			Origin: "Usatoday",
 		}

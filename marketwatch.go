@@ -12,7 +12,7 @@ type MarketWatch struct {
 
 func (rc *MarketWatch) Run(wtr DocsWriter) {
 	rootCollector := colly.NewCollector(
-		colly.MaxDepth(3),
+		colly.MaxDepth(2),
 		colly.URLFilters(
 			regexp.MustCompile("https://www\\.marketwatch\\.com/"),
 			regexp.MustCompile("https://www\\.marketwatch\\.com/story/.+"),
@@ -35,10 +35,11 @@ func (rc *MarketWatch) Run(wtr DocsWriter) {
 	})
 
 	articleCollector.OnHTML(".region--primary", func(e *colly.HTMLElement) {
+		date := dateParser(e.ChildText(".timestamp "))
 		doc := News{
 			Title:  e.ChildText("h1.article__headline"),
 			Body:   e.ChildText("div.article__body "),
-			Time:   e.ChildText(".timestamp "),
+			Time:   date,
 			Url:    e.Request.URL.String(),
 			Origin: "MarketWatch",
 		}

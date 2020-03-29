@@ -13,7 +13,7 @@ type SeekingAlpha struct {
 func (rc *SeekingAlpha) Run(wtr DocsWriter) {
 	// Instantiate default NewCollector
 	c := colly.NewCollector(
-		colly.MaxDepth(3),
+		colly.MaxDepth(2),
 		// Visit Latest News section
 		colly.URLFilters(
 			regexp.MustCompile("https://seekingalpha\\.com/market-news"),
@@ -43,10 +43,11 @@ func (rc *SeekingAlpha) Run(wtr DocsWriter) {
 		- 크롤과 동시에 바로 저장하도록 함
 		- mongoDB에서의 중복체크는 WriteDocs 함수에서 진행
 		*/
+		date := dateParser(e.ChildText("time[itemprop=datePublished]"))
 		doc := News{
 			Title:  e.ChildText("h1[itemprop=headline]"),
 			Body:   e.ChildText("div[id=bullets_ul]"),
-			Time:   e.ChildText("time[itemprop=datePublished]"),
+			Time:   date,
 			Url:    e.Request.URL.String(),
 			Origin: "seekingalpha",
 		}
