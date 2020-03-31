@@ -56,13 +56,13 @@ func (reader *mongoDBReader) Destroy() error {
 	return nil
 }
 
-func (reader *mongoDBReader) ReadDocs(filter bson.D, limit int) (news []*News, err error) {
+func (reader *mongoDBReader) ReadDocs(filter bson.D, limit int64) (news []*News, err error) {
 	collection := reader.client.Database("test").Collection("news")
 
 	var docs []*News
 
 	findOptions := options.Find()
-	findOptions.SetLimit(10)
+	findOptions.SetLimit(limit)
 
 	cur, err := collection.Find(context.TODO(), filter, findOptions)
 	if err != nil {
