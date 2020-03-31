@@ -17,7 +17,11 @@ func dateParser(s string) string {
 
 	find_idx := upd_r.FindStringIndex(ls)
 	if len(find_idx) != 0 {
-		ls = ls[:find_idx[0]]
+		if find_idx[0] < 2{
+			ls = ls[find_idx[1]:]
+		} else{
+			ls = ls[:find_idx[0]]
+		}
 	}
 
 	//3. find month & day 대부분 월, 일은 붙어 있으니 함께 찾도록 한다
@@ -52,8 +56,7 @@ func dateParser(s string) string {
 	date := strings.Join(tot, " ")
 	if is_am {
 		date = date + " am"
-	}
-	if is_pm {
+	} else if is_pm{
 		date = date + " pm"
 	}
 
