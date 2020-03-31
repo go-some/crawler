@@ -129,7 +129,8 @@ func (rc *Medium) Run(wtr DocsWriter) {
 		finalBody = strings.Join(spl, "\n")
 		//fmt.Println(finalBody)
 		time := time.Now().String()
-		doc := News{title, finalBody, time, url, origin}
+		img := ""
+		doc := News{title, finalBody, time, url, origin, img}
 		docs = append(docs, doc)
 		if len(docs) >= saveLength {
 			wtr.WriteDocs(docs)

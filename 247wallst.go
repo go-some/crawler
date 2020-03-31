@@ -12,7 +12,7 @@ type WallST247 struct {
 func (rc *WallST247) Run(wtr DocsWriter) {
 	// Instantiate default NewCollector
 	c := colly.NewCollector(
-		colly.MaxDepth(2),
+		colly.MaxDepth(1),
 		// Crawl from the main page
 		colly.URLFilters(
 			regexp.MustCompile("https://247wallst\\.com/"),
@@ -51,6 +51,7 @@ func (rc *WallST247) Run(wtr DocsWriter) {
 			Time:   date,
 			Url:    e.Request.URL.String(),
 			Origin: "247wallst",
+			Img:		"",
 		}
 		cnt, err := wtr.WriteDocs([]News{doc})
 		if err != nil {

@@ -13,9 +13,10 @@ type SeekingAlpha struct {
 func (rc *SeekingAlpha) Run(wtr DocsWriter) {
 	// Instantiate default NewCollector
 	c := colly.NewCollector(
-		colly.MaxDepth(2),
+		colly.MaxDepth(1),
 		// Visit Latest News section
 		colly.URLFilters(
+			regexp.MustCompile("https://seekingalpha\\.com/market-outlook"),
 			regexp.MustCompile("https://seekingalpha\\.com/market-news"),
 		),
 	)
@@ -29,11 +30,20 @@ func (rc *SeekingAlpha) Run(wtr DocsWriter) {
 		link := e.Request.AbsoluteURL(e.Attr("href"))
 		//if the link is article page, crawl using articleCollector
 		//else, visit the link until MaxDepth
-		if strings.Index(link, "seekingalpha.com/news") != -1 {
+		if strings.Index(link, "seekingalpha.com/news") != -1 || strings.Index(link, "seekingalpha.com/article") != -1 {
 			articleCollector.Visit(link)
 		} else {
 			e.Request.Visit(link) //e.Request.Visit을 이용해야 MaxDepth 처리가 된다.
 		}
+	})
+	// 뉴스 기사 url 별 대표 image source 를 저장하기 위한 변수 선언
+	url := ""
+	img_src := ""
+
+	articleCollector.OnHTML("head", func(e *colly.HTMLElement){
+		// cnbc의 경우 head meta 태그에 대표 이미지 정보가 저장되어 있음
+		url = e.Request.URL.String()
+		img_src = e.ChildAttr("meta[property=\"og:image\"]", "content")
 	})
 
 	articleCollector.OnHTML("div[id=main_content]", func(e *colly.HTMLElement) {
@@ -43,13 +53,18 @@ func (rc *SeekingAlpha) Run(wtr DocsWriter) {
 		- 크롤과 동시에 바로 저장하도록 함
 		- mongoDB에서의 중복체크는 WriteDocs 함수에서 진행
 		*/
-		date := dateParser(e.ChildText("time[itemprop=datePublished]"))
+		date := dateParser(e.ChildText("time"))
+		// 해당 기사의 head로부터 대표 이미지를 잘 찾았는지 check
+		if url != e.Request.URL.String() {
+			img_src = ""
+		}
 		doc := News{
-			Title:  e.ChildText("h1[itemprop=headline]"),
-			Body:   e.ChildText("div[id=bullets_ul]"),
+			Title:  e.ChildText("h1"),
+			Body:   e.ChildText("div#a-cont"),
 			Time:   date,
 			Url:    e.Request.URL.String(),
 			Origin: "seekingalpha",
+			Img:		img_src,
 		}
 		cnt, err := wtr.WriteDocs([]News{doc})
 		if err != nil {
@@ -59,5 +74,5 @@ func (rc *SeekingAlpha) Run(wtr DocsWriter) {
 		}
 	})
 
-	c.Visit("https://seekingalpha.com/market-news")
+	c.Visit("https://seekingalpha.com/market-outlook")
 }

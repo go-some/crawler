@@ -12,7 +12,7 @@ type CNBC struct {
 func (rc *CNBC) Run(wtr DocsWriter) {
 	// Instantiate default NewCollector
 	c := colly.NewCollector(
-		colly.MaxDepth(2),
+		colly.MaxDepth(1),
 		// Visit business & technology section
 		colly.URLFilters(
 			regexp.MustCompile("https://www\\.cnbc\\.com/business"),
@@ -37,6 +37,15 @@ func (rc *CNBC) Run(wtr DocsWriter) {
 			e.Request.Visit(link) //e.Request.Visit을 이용해야 MaxDepth 처리가 된다.
 		}
 	})
+	// 뉴스 기사 url 별 대표 image source 를 저장하기 위한 변수 선언
+	url := ""
+	img_src := ""
+
+	articleCollector.OnHTML("head", func(e *colly.HTMLElement){
+		// cnbc의 경우 head meta 태그에 대표 이미지 정보가 저장되어 있음
+		url = e.Request.URL.String()
+		img_src = e.ChildAttr("meta[itemprop=primaryImageOfPage]", "content")
+	})
 
 	articleCollector.OnHTML("div.Article", func(e *colly.HTMLElement) {
 		/* Read article page and save to mongoDB
@@ -46,12 +55,17 @@ func (rc *CNBC) Run(wtr DocsWriter) {
 		- mongoDB에서의 중복체크는 WriteDocs 함수에서 진행
 		*/
 		date := dateParser(e.ChildText("time[data-testid=published-timestamp]"))
+		// 해당 기사의 head로부터 대표 이미지를 잘 찾았는지 check
+		if url != e.Request.URL.String() {
+			img_src = ""
+		}
 		doc := News{
 			Title:  e.ChildText("h1"),
 			Body:   e.ChildText("div[data-module=ArticleBody]"),
 			Time:   date,
 			Url:    e.Request.URL.String(),
 			Origin: "cnbc",
+			Img: img_src,
 		}
 		cnt, err := wtr.WriteDocs([]News{doc})
 		if err != nil {
@@ -59,6 +73,7 @@ func (rc *CNBC) Run(wtr DocsWriter) {
 		} else {
 			fmt.Println(cnt, "docs saved")
 		}
+
 	})
 
 	c.Visit("https://www.cnbc.com/business")

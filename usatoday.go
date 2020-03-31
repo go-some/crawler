@@ -12,7 +12,7 @@ type USAToday struct {
 
 func (rc *USAToday) Run(wtr DocsWriter) {
 	rootCollector := colly.NewCollector(
-		colly.MaxDepth(2),
+		colly.MaxDepth(1),
 		colly.URLFilters(
 			regexp.MustCompile("https://www\\.usatoday\\.com/money/"),
 			regexp.MustCompile("https://www\\.usatoday\\.com/tech/"),
@@ -41,15 +41,31 @@ func (rc *USAToday) Run(wtr DocsWriter) {
 			e.Request.Visit(link)
 		}
 	})
+	// 뉴스 기사 url 별 대표 image source 를 저장하기 위한 변수 선언
+	url := ""
+	img_src := ""
+
+	articleCollector.OnHTML("head", func(e *colly.HTMLElement){
+		// cnbc의 경우 head meta 태그에 대표 이미지 정보가 저장되어 있음
+		url = e.Request.URL.String()
+		img_src = e.ChildAttr("meta[property=\"og:image\"]", "content")
+		idx := strings.Index(img_src,"?")
+		img_src = img_src[:idx]
+	})
 
 	articleCollector.OnHTML("main.gnt_cw", func(e *colly.HTMLElement) {
 		date := dateParser(e.ChildAttr(".gnt_ar_dt", "aria-label"))
+		// 해당 기사의 head로부터 대표 이미지를 잘 찾았는지 check
+		if url != e.Request.URL.String() {
+			img_src = ""
+		}
 		doc := News{
 			Title:  e.ChildText("h1.gnt_ar_hl"),
 			Body:   e.ChildText("div.gnt_ar_b"),
 			Time:   date,
 			Url:    e.Request.URL.String(),
 			Origin: "Usatoday",
+			Img:		img_src,
 		}
 		cnt, err := wtr.WriteDocs([]News{doc})
 		if err != nil {
