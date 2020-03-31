@@ -35,12 +35,12 @@ func (rc *MarketWatch) Run(wtr DocsWriter) {
 	})
 	// 뉴스 기사 url 별 대표 image source 를 저장하기 위한 변수 선언
 	url := ""
-	img_src := ""
+	imgSrc := ""
 
-	articleCollector.OnHTML("head", func(e *colly.HTMLElement){
+	articleCollector.OnHTML("head", func(e *colly.HTMLElement) {
 		// cnbc의 경우 head meta 태그에 대표 이미지 정보가 저장되어 있음
 		url = e.Request.URL.String()
-		img_src = e.ChildAttr("meta[property=\"og:image\"]", "content")
+		imgSrc = e.ChildAttr("meta[property=\"og:image\"]", "content")
 	})
 
 	articleCollector.OnHTML(".region--primary", func(e *colly.HTMLElement) {
@@ -50,10 +50,10 @@ func (rc *MarketWatch) Run(wtr DocsWriter) {
 		- 크롤과 동시에 바로 저장하도록 함
 		- mongoDB에서의 중복체크는 WriteDocs 함수에서 진행
 		*/
-		date := dateParser(e.ChildText(".timestamp "))
+		date := DateParser(e.ChildText(".timestamp "))
 		// 해당 기사의 head로부터 대표 이미지를 잘 찾았는지 check
-		if url != e.Request.URL.String() || strings.Contains(img_src, "mw_logo_social.png") {
-			img_src = ""
+		if url != e.Request.URL.String() || strings.Contains(imgSrc, "mw_logo_social.png") {
+			imgSrc = ""
 		}
 		doc := News{
 			Title:  e.ChildText("h1.article__headline"),
@@ -61,7 +61,7 @@ func (rc *MarketWatch) Run(wtr DocsWriter) {
 			Time:   date,
 			Url:    e.Request.URL.String(),
 			Origin: "MarketWatch",
-			Img:	img_src,
+			Img:    imgSrc,
 		}
 		cnt, err := wtr.WriteDocs([]News{doc})
 		if err != nil {

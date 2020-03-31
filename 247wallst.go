@@ -44,14 +44,14 @@ func (rc *WallST247) Run(wtr DocsWriter) {
 		- 크롤과 동시에 바로 저장하도록 함
 		- mongoDB에서의 중복체크는 WriteDocs 함수에서 진행
 		*/
-		date := dateParser(e.ChildText("div.post-date"))
+		date := DateParser(e.ChildText("div.post-date"))
 		doc := News{
 			Title:  e.ChildText("div.title"),
 			Body:   e.ChildText("p"),
 			Time:   date,
 			Url:    e.Request.URL.String(),
 			Origin: "247wallst",
-			Img:		"",
+			Img:    "",
 		}
 		cnt, err := wtr.WriteDocs([]News{doc})
 		if err != nil {

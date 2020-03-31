@@ -43,21 +43,21 @@ func (rc *USAToday) Run(wtr DocsWriter) {
 	})
 	// 뉴스 기사 url 별 대표 image source 를 저장하기 위한 변수 선언
 	url := ""
-	img_src := ""
+	imgSrc := ""
 
-	articleCollector.OnHTML("head", func(e *colly.HTMLElement){
+	articleCollector.OnHTML("head", func(e *colly.HTMLElement) {
 		// cnbc의 경우 head meta 태그에 대표 이미지 정보가 저장되어 있음
 		url = e.Request.URL.String()
-		img_src = e.ChildAttr("meta[property=\"og:image\"]", "content")
-		idx := strings.Index(img_src,"?")
-		img_src = img_src[:idx]
+		imgSrc = e.ChildAttr("meta[property=\"og:image\"]", "content")
+		idx := strings.Index(imgSrc, "?")
+		imgSrc = imgSrc[:idx]
 	})
 
 	articleCollector.OnHTML("main.gnt_cw", func(e *colly.HTMLElement) {
-		date := dateParser(e.ChildAttr(".gnt_ar_dt", "aria-label"))
+		date := DateParser(e.ChildAttr(".gnt_ar_dt", "aria-label"))
 		// 해당 기사의 head로부터 대표 이미지를 잘 찾았는지 check
 		if url != e.Request.URL.String() {
-			img_src = ""
+			imgSrc = ""
 		}
 		doc := News{
 			Title:  e.ChildText("h1.gnt_ar_hl"),
@@ -65,7 +65,7 @@ func (rc *USAToday) Run(wtr DocsWriter) {
 			Time:   date,
 			Url:    e.Request.URL.String(),
 			Origin: "Usatoday",
-			Img:		img_src,
+			Img:    imgSrc,
 		}
 		cnt, err := wtr.WriteDocs([]News{doc})
 		if err != nil {
