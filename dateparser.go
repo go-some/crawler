@@ -1,10 +1,11 @@
 package crawler
 
 import (
-	"github.com/araddon/dateparse"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/araddon/dateparse"
 )
 
 func DateParser(s string) string {
@@ -14,13 +15,18 @@ func DateParser(s string) string {
 
 	//2. updated 부분은 날리고 published 날짜만 저장한다
 	updR, _ := regexp.Compile("\\bupd")
+	pubR, _ := regexp.Compile("\\bpub")
 
-	findIdx := updR.FindStringIndex(ls)
-	if len(findIdx) != 0 {
-		if findIdx[0] < 2 {
-			ls = ls[findIdx[1]:]
-		} else {
-			ls = ls[:findIdx[0]]
+	findUpdIdx := updR.FindStringIndex(ls)
+	findPubIdx := pubR.FindStringIndex(ls)
+
+	if len(findPubIdx) != 0 {
+		if len(findUpdIdx) != 0 {
+			if findPubIdx[0] < findUpdIdx[0] {
+				ls = ls[:findUpdIdx[0]]
+			} else {
+				ls = ls[findPubIdx[1]:]
+			}
 		}
 	}
 
