@@ -2,8 +2,9 @@ package crawler
 
 import (
 	"fmt"
-	"github.com/gocolly/colly"
 	"regexp"
+
+	"github.com/gocolly/colly"
 )
 
 type CNBC struct {
@@ -12,7 +13,7 @@ type CNBC struct {
 func (rc *CNBC) Run(wtr DocsWriter) {
 	// Instantiate default NewCollector
 	c := colly.NewCollector(
-		colly.MaxDepth(1),
+		colly.MaxDepth(2),
 		// Visit business & technology section
 		colly.URLFilters(
 			regexp.MustCompile("https://www\\.cnbc\\.com/business"),
@@ -55,17 +56,25 @@ func (rc *CNBC) Run(wtr DocsWriter) {
 		- mongoDB에서의 중복체크는 WriteDocs 함수에서 진행
 		*/
 		date := DateParser(e.ChildText("time[data-testid=published-timestamp]"))
-		// 해당 기사의 head로부터 대표 이미지를 잘 찾았는지 check
+		// 해당 기사의 head로부터 대표 이미지를 찾고 그래프 이미지인지 check
+		var hasGraphImg bool
 		if url != e.Request.URL.String() {
 			imgSrc = ""
+			hasGraphImg = false
+		} else {
+			hasGraphImg = CheckGraphImage(imgSrc)
+			if !hasGraphImg {
+				imgSrc = ""
+			}
 		}
 		doc := News{
-			Title:  e.ChildText("h1"),
-			Body:   e.ChildText("div[data-module=ArticleBody]"),
-			Time:   date,
-			Url:    e.Request.URL.String(),
-			Origin: "cnbc",
-			Img:    imgSrc,
+			Title:       e.ChildText("h1"),
+			Body:        e.ChildText("div[data-module=ArticleBody]"),
+			Time:        date,
+			Url:         e.Request.URL.String(),
+			Origin:      "cnbc",
+			ImgUrl:      imgSrc,
+			HasGraphImg: hasGraphImg,
 		}
 		cnt, err := wtr.WriteDocs([]News{doc})
 		if err != nil {

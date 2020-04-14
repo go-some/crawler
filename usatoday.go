@@ -2,9 +2,10 @@ package crawler
 
 import (
 	"fmt"
-	"github.com/gocolly/colly"
 	"regexp"
 	"strings"
+
+	"github.com/gocolly/colly"
 )
 
 type USAToday struct {
@@ -12,7 +13,7 @@ type USAToday struct {
 
 func (rc *USAToday) Run(wtr DocsWriter) {
 	rootCollector := colly.NewCollector(
-		colly.MaxDepth(1),
+		colly.MaxDepth(2),
 		colly.URLFilters(
 			regexp.MustCompile("https://www\\.usatoday\\.com/money/"),
 			regexp.MustCompile("https://www\\.usatoday\\.com/tech/"),
@@ -55,17 +56,25 @@ func (rc *USAToday) Run(wtr DocsWriter) {
 
 	articleCollector.OnHTML("main.gnt_cw", func(e *colly.HTMLElement) {
 		date := DateParser(e.ChildAttr(".gnt_ar_dt", "aria-label"))
-		// 해당 기사의 head로부터 대표 이미지를 잘 찾았는지 check
+		// 해당 기사의 head로부터 대표 이미지를 찾고 그래프 이미지인지 check
+		var hasGraphImg bool
 		if url != e.Request.URL.String() {
 			imgSrc = ""
+			hasGraphImg = false
+		} else {
+			hasGraphImg = CheckGraphImage(imgSrc)
+			if !hasGraphImg {
+				imgSrc = ""
+			}
 		}
 		doc := News{
-			Title:  e.ChildText("h1.gnt_ar_hl"),
-			Body:   e.ChildText("div.gnt_ar_b"),
-			Time:   date,
-			Url:    e.Request.URL.String(),
-			Origin: "Usatoday",
-			Img:    imgSrc,
+			Title:       e.ChildText("h1.gnt_ar_hl"),
+			Body:        e.ChildText("div.gnt_ar_b"),
+			Time:        date,
+			Url:         e.Request.URL.String(),
+			Origin:      "Usatoday",
+			ImgUrl:      imgSrc,
+			HasGraphImg: hasGraphImg,
 		}
 		cnt, err := wtr.WriteDocs([]News{doc})
 		if err != nil {

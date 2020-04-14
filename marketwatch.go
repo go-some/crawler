@@ -2,9 +2,10 @@ package crawler
 
 import (
 	"fmt"
-	"github.com/gocolly/colly"
 	"regexp"
 	"strings"
+
+	"github.com/gocolly/colly"
 )
 
 type MarketWatch struct {
@@ -12,7 +13,7 @@ type MarketWatch struct {
 
 func (rc *MarketWatch) Run(wtr DocsWriter) {
 	rootCollector := colly.NewCollector(
-		colly.MaxDepth(1),
+		colly.MaxDepth(2),
 		colly.URLFilters(
 			regexp.MustCompile("https://www\\.marketwatch\\.com/"),
 			regexp.MustCompile("https://www\\.marketwatch\\.com/story/.+"),
@@ -51,17 +52,25 @@ func (rc *MarketWatch) Run(wtr DocsWriter) {
 		- mongoDB에서의 중복체크는 WriteDocs 함수에서 진행
 		*/
 		date := DateParser(e.ChildText(".timestamp "))
-		// 해당 기사의 head로부터 대표 이미지를 잘 찾았는지 check
+		// 해당 기사의 head로부터 대표 이미지를 찾고 그래프 이미지인지 check
+		var hasGraphImg bool
 		if url != e.Request.URL.String() || strings.Contains(imgSrc, "mw_logo_social.png") {
 			imgSrc = ""
+			hasGraphImg = false
+		} else {
+			hasGraphImg := CheckGraphImage(imgSrc)
+			if !hasGraphImg {
+				imgSrc = ""
+			}
 		}
 		doc := News{
-			Title:  e.ChildText("h1.article__headline"),
-			Body:   e.ChildText("div.article__body "),
-			Time:   date,
-			Url:    e.Request.URL.String(),
-			Origin: "MarketWatch",
-			Img:    imgSrc,
+			Title:       e.ChildText("h1.article__headline"),
+			Body:        e.ChildText("div.article__body "),
+			Time:        date,
+			Url:         e.Request.URL.String(),
+			Origin:      "MarketWatch",
+			ImgUrl:      imgSrc,
+			HasGraphImg: hasGraphImg,
 		}
 		cnt, err := wtr.WriteDocs([]News{doc})
 		if err != nil {

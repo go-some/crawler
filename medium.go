@@ -4,9 +4,10 @@ import (
 	//"bufio"
 	"bytes"
 	//"fmt"
+	"io"
+
 	"github.com/gocolly/colly"
 	"golang.org/x/net/html"
-	"io"
 	//"io/ioutil"
 	//"os"
 	"strings"
@@ -130,7 +131,8 @@ func (rc *Medium) Run(wtr DocsWriter) {
 		//fmt.Println(finalBody)
 		time := time.Now().String()
 		img := ""
-		doc := News{title, finalBody, time, url, origin, img}
+		hasGraph := false
+		doc := News{title, finalBody, time, url, origin, img, hasGraph}
 		docs = append(docs, doc)
 		if len(docs) >= saveLength {
 			wtr.WriteDocs(docs)

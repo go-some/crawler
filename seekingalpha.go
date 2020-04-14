@@ -2,9 +2,10 @@ package crawler
 
 import (
 	"fmt"
-	"github.com/gocolly/colly"
 	"regexp"
 	"strings"
+
+	"github.com/gocolly/colly"
 )
 
 type SeekingAlpha struct {
@@ -13,7 +14,7 @@ type SeekingAlpha struct {
 func (rc *SeekingAlpha) Run(wtr DocsWriter) {
 	// Instantiate default NewCollector
 	c := colly.NewCollector(
-		colly.MaxDepth(1),
+		colly.MaxDepth(2),
 		// Visit Latest News section
 		colly.URLFilters(
 			regexp.MustCompile("https://seekingalpha\\.com/market-outlook"),
@@ -44,6 +45,10 @@ func (rc *SeekingAlpha) Run(wtr DocsWriter) {
 		// cnbc의 경우 head meta 태그에 대표 이미지 정보가 저장되어 있음
 		url = e.Request.URL.String()
 		imgSrc = e.ChildAttr("meta[property=\"og:image\"]", "content")
+		if strings.Index(imgSrc, "og_image_192-59bfd51c9fe6af025b2f9f96c807e46f8e2f06c5ae787b15bf1423e6c676d4db.png") != -1 {
+			imgSrc = ""
+			url = ""
+		}
 	})
 
 	articleCollector.OnHTML("div[id=main_content]", func(e *colly.HTMLElement) {
@@ -54,17 +59,25 @@ func (rc *SeekingAlpha) Run(wtr DocsWriter) {
 		- mongoDB에서의 중복체크는 WriteDocs 함수에서 진행
 		*/
 		date := DateParser(e.ChildText("time"))
-		// 해당 기사의 head로부터 대표 이미지를 잘 찾았는지 check
+		// 해당 기사의 head로부터 대표 이미지를 찾고 그래프 이미지인지 check
+		var hasGraphImg bool
 		if url != e.Request.URL.String() {
 			imgSrc = ""
+			hasGraphImg = false
+		} else {
+			hasGraphImg = CheckGraphImage(imgSrc)
+			if !hasGraphImg {
+				imgSrc = ""
+			}
 		}
 		doc := News{
-			Title:  e.ChildText("h1"),
-			Body:   e.ChildText("div#a-cont"),
-			Time:   date,
-			Url:    e.Request.URL.String(),
-			Origin: "seekingalpha",
-			Img:    imgSrc,
+			Title:       e.ChildText("h1"),
+			Body:        e.ChildText("div#a-cont"),
+			Time:        date,
+			Url:         e.Request.URL.String(),
+			Origin:      "seekingalpha",
+			ImgUrl:      imgSrc,
+			HasGraphImg: hasGraphImg,
 		}
 		cnt, err := wtr.WriteDocs([]News{doc})
 		if err != nil {
