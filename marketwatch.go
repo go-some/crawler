@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/go-some/txtanalyzer"
 	"github.com/gocolly/colly"
 )
 
@@ -63,14 +64,23 @@ func (rc *MarketWatch) Run(wtr DocsWriter) {
 				imgSrc = ""
 			}
 		}
+		title := e.ChildText("h1.article__headline")
+		body := e.ChildText("div.article__body ")
+		entitiesInTitle, personList, orgList, prodList := txtanalyzer.NEROnDoc(title, body)
+		bodySum := txtanalyzer.SumOnDoc(title, body)
 		doc := News{
-			Title:       e.ChildText("h1.article__headline"),
-			Body:        e.ChildText("div.article__body "),
-			Time:        date,
-			Url:         e.Request.URL.String(),
-			Origin:      "MarketWatch",
-			ImgUrl:      imgSrc,
-			HasGraphImg: hasGraphImg,
+			Title:           title,
+			Body:            body,
+			Time:            date,
+			Url:             e.Request.URL.String(),
+			Origin:          "marketwatch",
+			ImgUrl:          imgSrc,
+			HasGraphImg:     hasGraphImg,
+			EntitiesInTitle: entitiesInTitle,
+			PersonList:      personList,
+			OrgList:         orgList,
+			ProdList:        prodList,
+			BodySum:         bodySum,
 		}
 		cnt, err := wtr.WriteDocs([]News{doc})
 		if err != nil {
@@ -78,7 +88,6 @@ func (rc *MarketWatch) Run(wtr DocsWriter) {
 		} else {
 			fmt.Println(cnt, "docs saved")
 		}
-
 	})
 
 	rootCollector.Visit("https://www.marketwatch.com/")

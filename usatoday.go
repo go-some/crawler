@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/go-some/txtanalyzer"
 	"github.com/gocolly/colly"
 )
 
@@ -67,14 +68,23 @@ func (rc *USAToday) Run(wtr DocsWriter) {
 				imgSrc = ""
 			}
 		}
+		title := e.ChildText("h1.gnt_ar_hl")
+		body := e.ChildText("div.gnt_ar_b")
+		entitiesInTitle, personList, orgList, prodList := txtanalyzer.NEROnDoc(title, body)
+		bodySum := txtanalyzer.SumOnDoc(title, body)
 		doc := News{
-			Title:       e.ChildText("h1.gnt_ar_hl"),
-			Body:        e.ChildText("div.gnt_ar_b"),
-			Time:        date,
-			Url:         e.Request.URL.String(),
-			Origin:      "Usatoday",
-			ImgUrl:      imgSrc,
-			HasGraphImg: hasGraphImg,
+			Title:           title,
+			Body:            body,
+			Time:            date,
+			Url:             e.Request.URL.String(),
+			Origin:          "usatoday",
+			ImgUrl:          imgSrc,
+			HasGraphImg:     hasGraphImg,
+			EntitiesInTitle: entitiesInTitle,
+			PersonList:      personList,
+			OrgList:         orgList,
+			ProdList:        prodList,
+			BodySum:         bodySum,
 		}
 		cnt, err := wtr.WriteDocs([]News{doc})
 		if err != nil {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/go-some/txtanalyzer"
 	"github.com/gocolly/colly"
 )
 
@@ -46,14 +47,23 @@ func (rc *WallST247) Run(wtr DocsWriter) {
 		- mongoDB에서의 중복체크는 WriteDocs 함수에서 진행
 		*/
 		date := DateParser(e.ChildText("div.post-date"))
+		title := e.ChildText("div.title")
+		body := e.ChildText("p")
+		entitiesInTitle, personList, orgList, prodList := txtanalyzer.NEROnDoc(title, body)
+		bodySum := txtanalyzer.SumOnDoc(title, body)
 		doc := News{
-			Title:       e.ChildText("div.title"),
-			Body:        e.ChildText("p"),
-			Time:        date,
-			Url:         e.Request.URL.String(),
-			Origin:      "247wallst",
-			ImgUrl:      "",
-			HasGraphImg: false,
+			Title:           title,
+			Body:            body,
+			Time:            date,
+			Url:             e.Request.URL.String(),
+			Origin:          "247wallst",
+			ImgUrl:          "",
+			HasGraphImg:     false,
+			EntitiesInTitle: entitiesInTitle,
+			PersonList:      personList,
+			OrgList:         orgList,
+			ProdList:        prodList,
+			BodySum:         bodySum,
 		}
 		cnt, err := wtr.WriteDocs([]News{doc})
 		if err != nil {
