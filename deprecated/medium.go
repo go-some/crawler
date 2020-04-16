@@ -6,6 +6,7 @@ import (
 	//"fmt"
 	"io"
 
+	"github.com/go-some/txtanalyzer"
 	"github.com/gocolly/colly"
 	"golang.org/x/net/html"
 	//"io/ioutil"
@@ -132,7 +133,7 @@ func (rc *Medium) Run(wtr DocsWriter) {
 		time := time.Now().String()
 		img := ""
 		hasGraph := false
-		doc := News{title, finalBody, time, url, origin, img, hasGraph}
+		doc := News{title, finalBody, time, url, origin, img, hasGraph, []txtanalyzer.Entity{}}
 		docs = append(docs, doc)
 		if len(docs) >= saveLength {
 			wtr.WriteDocs(docs)
