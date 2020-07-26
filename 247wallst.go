@@ -9,6 +9,46 @@ import (
 )
 
 type WallST247 struct {
+	webCollector     *colly.Collector
+	articleCollector *colly.Collector
+}
+
+func (rc *WallST247) Init() {
+	rc.webCollector = colly.NewCollector(
+		colly.MaxDepth(2),
+		colly.URLFilters(
+			regexp.MustCompile("https://247wallst\\.com/"),
+		),
+	)
+	rc.webCollector.AllowURLRevisit = false
+
+	rc.articleCollector = colly.NewCollector()
+}
+
+func (rc *WallST247) WebSurfing(wtr DocsWriter) {
+	rc.webCollector.OnHTML("a[href]", func(e *colly.HTMLElement) {
+		/* crawl all href links recursively	*/
+		link := e.Request.AbsoluteURL(e.Attr("href"))
+		//if the link is article page, crawl using articleCollector
+		//else, visit the link until MaxDepth
+		re := regexp.MustCompile("https://247wallst\\.com/[a-z-]+/[0-9]{4}/[0-9]{2}/[0-9]{2}/.+")
+		if re.MatchString(link) {
+			err := wtr.CheckDuplicate(link)
+			if err == nil {
+				fmt.Printf("Already exist (%s)\n", link)
+			} else {
+				//articleCollector.Visit(link)
+				fmt.Println(link)
+			}
+		} else {
+			e.Request.Visit(link) //e.Request.Visit을 이용해야 MaxDepth 처리가 된다.
+		}
+	})
+	rc.webCollector.Visit("https://247wallst.com/")
+}
+
+func (rc *WallST247) Crowl(wtr DocsWriter) {
+	//Queue 에서 읽어서 크롤하는 부분
 }
 
 func (rc *WallST247) Run(wtr DocsWriter) {
@@ -33,7 +73,13 @@ func (rc *WallST247) Run(wtr DocsWriter) {
 		//cnbc의 기사 형식은 '카테고리/년도/일/월/제목'이므로 regxp를 활용
 		re := regexp.MustCompile("https://247wallst\\.com/[a-z-]+/[0-9]{4}/[0-9]{2}/[0-9]{2}/.+")
 		if re.MatchString(link) {
-			articleCollector.Visit(link)
+			err := wtr.CheckDuplicate(link)
+			if err == nil {
+				fmt.Printf("Already exist (%s)\n", link)
+			} else {
+				articleCollector.Visit(link)
+			}
+
 		} else {
 			e.Request.Visit(link) //e.Request.Visit을 이용해야 MaxDepth 처리가 된다.
 		}

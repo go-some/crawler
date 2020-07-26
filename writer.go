@@ -3,7 +3,6 @@ package crawler
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -12,6 +11,7 @@ import (
 
 type DocsWriter interface {
 	WriteDocs([]News) (n int, err error)
+	CheckDuplicate(link string) (err error)
 }
 
 /* define printerWriter ( */
@@ -30,18 +30,20 @@ func NewPrinterWriter() *printerWriter {
 
 /* define mongodbWriter ( */
 type mongoDBWriter struct {
-	client *mongo.Client
+	client     *mongo.Client
+	collection *mongo.Collection
 }
 
 func (wtr *mongoDBWriter) Init() error {
-	id := os.Getenv("DBID")
-	pw := os.Getenv("DBPW")
-	addrTemplate := os.Getenv("DBADDR")
+	id := "crowlnews"
+	pw := "zum123!2#"
+	addrTemplate := "mongodb+srv://%s:%s@crowlnews-qzm5a.mongodb.net/test?retryWrites=true&w=majority"
 	mongoDBAddr := fmt.Sprintf(addrTemplate, id, pw)
 	clientOptions := options.Client().ApplyURI(mongoDBAddr)
 
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 	wtr.client = client
+	wtr.collection = wtr.client.Database("test").Collection("news")
 
 	if err != nil {
 		return err
@@ -70,19 +72,21 @@ func (wtr *mongoDBWriter) Destroy() error {
 	return nil
 }
 
+func (wtr *mongoDBWriter) CheckDuplicate(link string) (err error) {
+
+	url := bson.D{{"url", link}}
+	var res News
+	return wtr.collection.FindOne(context.TODO(), url).Decode(&res)
+}
+
+func CheckDuplicateURL(collection *mongo.Collection, res *News, filterUrl bson.D) (err error) {
+	return collection.FindOne(context.TODO(), filterUrl).Decode(res)
+}
+
 func (wtr *mongoDBWriter) WriteDocs(docs []News) (n int, err error) {
-	collection := wtr.client.Database("test").Collection("news")
 
 	for _, doc := range docs {
-		var res News
-		filter := bson.D{{"url", doc.Url}}
-
-		err = collection.FindOne(context.TODO(), filter).Decode(&res)
-		if err == nil {
-			return 0, fmt.Errorf("Already exist (%s)", doc.Url)
-		}
-
-		_, err := collection.InsertOne(context.TODO(), doc)
+		_, err := wtr.collection.InsertOne(context.TODO(), doc)
 		if err != nil {
 			return 0, err
 		}
