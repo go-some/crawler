@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-some/txtanalyzer"
 	"github.com/gocolly/colly"
+	nats "github.com/nats-io/nats.go"
 )
 
 type WallST247 struct {
@@ -25,7 +26,7 @@ func (rc *WallST247) Init() {
 	rc.articleCollector = colly.NewCollector()
 }
 
-func (rc *WallST247) WebSurfing(wtr DocsWriter) {
+func (rc *WallST247) WebSurfing(nc *nats.Conn) {
 	rc.webCollector.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		/* crawl all href links recursively	*/
 		link := e.Request.AbsoluteURL(e.Attr("href"))
@@ -33,13 +34,15 @@ func (rc *WallST247) WebSurfing(wtr DocsWriter) {
 		//else, visit the link until MaxDepth
 		re := regexp.MustCompile("https://247wallst\\.com/[a-z-]+/[0-9]{4}/[0-9]{2}/[0-9]{2}/.+")
 		if re.MatchString(link) {
-			err := wtr.CheckDuplicate(link)
-			if err == nil {
-				fmt.Printf("Already exist (%s)\n", link)
-			} else {
-				//articleCollector.Visit(link)
-				fmt.Println(link)
-			}
+			//err := wtr.CheckDuplicate(link)
+			//if err == nil {
+			//	fmt.Printf("Already exist (%s)\n", link)
+			//} else {
+			//	fmt.Println(link)
+			//}
+			fmt.Println(link)
+			nc.Publish("new_url", []byte(link))
+			nc.Flush()
 		} else {
 			e.Request.Visit(link) //e.Request.Visit을 이용해야 MaxDepth 처리가 된다.
 		}
